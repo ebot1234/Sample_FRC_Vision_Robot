@@ -15,6 +15,7 @@
 #include "ctre/Phoenix.h"
 #include <AHRS.h>
 #include <pathfinder.h>
+
 using namespace frc;
 using namespace std;
 
@@ -25,6 +26,7 @@ Robot::Robot() {
 //Network Table Varibles
 nt::NetworkTableEntry Angle;
 nt::NetworkTableEntry Distance;
+nt::NetworkTable table;
 //Motor Varibles
 TalonSRX fl = {0};
 TalonSRX fr = {1};
@@ -37,15 +39,15 @@ frc::Joystick stick1{1};
 cs::UsbCamera camera1;
 cs::VideoSink server;
 //Gyro Varibles
-AHRS ahrs;
+AHRS ahrs = {frc::SerialPort::kMXP};
 
 
 void Robot::RobotInit() {
 //Network Tables Setup
  auto inst = nt::NetworkTableInstance::GetDefault();
- auto table = inst.GetTable("Vision");
- Angle = table->GetEntry("angle");
- Distance = table->GetEntry("distance");
+ table = inst.GetTable("Vision");
+ Angle = table.GetEntry("angle");
+ Distance = table.GetEntry("distance");
  //Motor Setup
  fl.SetInverted(false);
  fl.SetNeutralMode(Coast);
@@ -58,6 +60,8 @@ void Robot::RobotInit() {
  //Camera Setup
  camera1 = frc::CameraServer::GetInstance()->StartAutomaticCapture(0);
  server = frc::CameraServer::GetInstance()->GetServer();
+ //Resets the Gyro
+ ahrs.Reset();
  printf("Robot Ready\n");
 }
 
@@ -173,19 +177,25 @@ void driveWhile(double distance, double speed){
     setSpeed(0.0, 0.0);
 }
 
-void generatePath(){
-    int point_length = 3;
-    Waypoints points[point_length];
-    
-    //Define points
-}
-
-
 void Robot::Autonomous() {
-    ahrs.Reset();
+    double angle_threshold = 1.5;
 
+    ahrs.Reset();
+    Angle = table.GetEntry("angle");
+    Distance = table.GetEntry("distance"); 
+    double setAngle = Angle.GetDouble;
+    double setDistance = setDistance - 6;
     //Drive to vision distance
 
+    driveWhile(setDistance, 0.5);
+    Wait(0.5);
+    if (setAngle != angle_threshold){
+        PIDTurn(setAngle, 10);
+    }
+    else{
+        printf("Robot in place\n");
+    }
+    
 }
 
 void Robot::OperatorControl() {
